@@ -72,8 +72,7 @@ def main():
         st.markdown("""
         <div style="text-align: center; padding: 20px 0;">
             <h1 style="color: #667eea; margin: 0;">📅</h1>
-            <h2 style="color: #333; margin: 5px 0;">Meeting Scheduler</h2>
-            <p style="color: #666;">Organizer Portal</p>
+            <h2 style="color: #333; margin: 5px 0;">Organizer Portal</h2>
         </div>
         """, unsafe_allow_html=True)
         
