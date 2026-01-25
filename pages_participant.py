@@ -17,8 +17,12 @@ import os
 
 
 def get_base_url():
-    """Get the base URL for the participant app."""
-    return os.getenv("PARTICIPANT_APP_URL", os.getenv("APP_BASE_URL", "http://localhost:8502"))
+    """Get the base URL for participant response links."""
+    return os.getenv(
+        "PARTICIPANT_URL",
+        os.getenv("PARTICIPANT_APP_URL", 
+                  os.getenv("APP_BASE_URL", "http://localhost:8501"))
+    )
 
 
 def render_participant_page(token: str = None):
@@ -70,7 +74,7 @@ def render_participant_page(token: str = None):
         token = query_params.get("token", None)
     
     if not token:
-        st.warning("⚠️ No response token found.")
+        st.warning(" No response token found.")
         st.markdown("""
         ### How to respond to a meeting invitation:
         1. Check your email for the meeting invitation
@@ -79,7 +83,7 @@ def render_participant_page(token: str = None):
         """)
         
         # Manual token entry (for testing)
-        with st.expander("🔑 Enter Token Manually"):
+        with st.expander(" Enter Token Manually"):
             manual_token = st.text_input("Response Token", placeholder="Enter your token...")
             if manual_token:
                 st.query_params["token"] = manual_token
@@ -90,7 +94,7 @@ def render_participant_page(token: str = None):
     participant_info = get_participant_by_token(token)
     
     if not participant_info:
-        st.error("❌ Invalid or expired response link.")
+        st.error(" Invalid or expired response link.")
         st.markdown("Please check your email for the correct invitation link, or contact the meeting organizer.")
         return
     
@@ -109,7 +113,7 @@ def render_participant_page(token: str = None):
     # Header
     st.markdown(f"""
     <div class="meeting-header">
-        <h1 style="margin: 0;">📅 Meeting Invitation</h1>
+        <h1 style="margin: 0;"> Meeting Invitation</h1>
         <p style="opacity: 0.9; margin-top: 10px;">Hello, {participant_name}!</p>
     </div>
     """, unsafe_allow_html=True)
@@ -124,7 +128,7 @@ def render_participant_page(token: str = None):
     if meeting_status == 'finalized' and finalized_slot:
         st.markdown(f"""
         <div class="finalized-banner">
-            <h2 style="margin: 0;">✅ Meeting Confirmed!</h2>
+            <h2 style="margin: 0;"> Meeting Confirmed!</h2>
             <p style="font-size: 1.3em; margin-top: 15px;">{finalized_slot}</p>
         </div>
         """, unsafe_allow_html=True)
@@ -132,7 +136,7 @@ def render_participant_page(token: str = None):
         return
     
     if meeting_status == 'cancelled':
-        st.error("❌ This meeting has been cancelled by the organizer.")
+        st.error(" This meeting has been cancelled by the organizer.")
         return
     
     # Get time slots
@@ -149,10 +153,10 @@ def render_participant_page(token: str = None):
         for r in existing:
             previous_responses[r['slot_id']] = r['availability']
         
-        st.info("✅ You have already responded. You can update your response below.")
+        st.info(" You have already responded. You can update your response below.")
     
     st.markdown("---")
-    st.subheader("📋 Please indicate your availability for each proposed time:")
+    st.subheader(" Please indicate your availability for each proposed time:")
     
     # Initialize session state for responses - MEETING SPECIFIC
     session_key = f'slot_responses_{meeting_id}'
@@ -168,7 +172,7 @@ def render_participant_page(token: str = None):
         col1, col2 = st.columns([2, 3])
         
         with col1:
-            st.markdown(f"### 🕐 {slot_display}")
+            st.markdown(f"###  {slot_display}")
             st.caption(f"Duration: {duration} minutes")
         
         with col2:
@@ -188,9 +192,9 @@ def render_participant_page(token: str = None):
                 options=['available', 'maybe', 'unavailable'],
                 index=default_idx,
                 format_func=lambda x: {
-                    'available': '✅ Available',
-                    'maybe': '🟡 Maybe / If needed',
-                    'unavailable': '❌ Not available'
+                    'available': ' Available',
+                    'maybe': ' Maybe / If needed',
+                    'unavailable': ' Not available'
                 }[x],
                 key=f"slot_{meeting_id}_{slot['id']}",
                 horizontal=True,
@@ -201,7 +205,7 @@ def render_participant_page(token: str = None):
         st.markdown("---")
     
     # Suggest alternative time
-    st.subheader("💡 Suggest Alternative Time (Optional)")
+    st.subheader(" Suggest Alternative Time (Optional)")
     
     with st.expander("Add a time that works better for you"):
         col1, col2 = st.columns(2)
@@ -218,7 +222,7 @@ def render_participant_page(token: str = None):
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        if st.button("📤 Submit Response", use_container_width=True, type="primary"):
+        if st.button(" Submit Response", use_container_width=True, type="primary"):
             # Save all responses using meeting-specific session key
             session_key = f'slot_responses_{meeting_id}'
             for slot in slots:
@@ -253,7 +257,7 @@ def render_participant_page(token: str = None):
                 base_url=base_url
             )
             
-            st.success("✅ Your response has been submitted! Thank you.")
+            st.success(" Your response has been submitted! Thank you.")
             st.balloons()
             
             # Show summary
@@ -262,7 +266,7 @@ def render_participant_page(token: str = None):
                 slot_dt = datetime.fromisoformat(slot['slot_datetime'])
                 slot_display = slot_dt.strftime('%a %m/%d %I:%M%p')
                 avail = st.session_state[session_key].get(slot['id'], 'unavailable')
-                icon = {'available': '✅', 'maybe': '🟡', 'unavailable': '❌'}[avail]
+                icon = {'available': '', 'maybe': '', 'unavailable': ''}[avail]
                 st.write(f"{icon} {slot_display}")
             
             st.info("You can revisit this link anytime to update your response.")
@@ -274,7 +278,7 @@ def render_participant_lookup():
     st.markdown("""
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                 padding: 30px; border-radius: 15px; color: white; margin-bottom: 30px;">
-        <h1 style="margin: 0;">👤 Participant Portal</h1>
+        <h1 style="margin: 0;"> Participant Portal</h1>
         <p style="opacity: 0.9;">Check your pending meeting invitations</p>
     </div>
     """, unsafe_allow_html=True)

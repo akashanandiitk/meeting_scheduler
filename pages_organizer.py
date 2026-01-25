@@ -23,11 +23,21 @@ from auth import get_current_organizer, is_authenticated
 
 
 def get_base_url():
-    """Get the base URL for the participant app."""
+    """Get the base URL for participant response links.
+    
+    Set PARTICIPANT_URL environment variable to your website URL, e.g.:
+    https://home.iitk.ac.in/~akasha/meeting-scheduler.html
+    
+    This way, response links will direct to your webpage which then
+    loads the Streamlit app in an iframe with the token.
+    """
     import os
-    # Use PARTICIPANT_APP_URL if set, otherwise fall back to APP_BASE_URL
-    # Default assumes participant_app.py runs on port 8502
-    return os.getenv("PARTICIPANT_APP_URL", os.getenv("APP_BASE_URL", "http://localhost:8502"))
+    # Priority: PARTICIPANT_URL > PARTICIPANT_APP_URL > APP_BASE_URL > default
+    return os.getenv(
+        "PARTICIPANT_URL",
+        os.getenv("PARTICIPANT_APP_URL", 
+                  os.getenv("APP_BASE_URL", "http://localhost:8501"))
+    )
 
 
 def render_organizer_page():
@@ -35,7 +45,7 @@ def render_organizer_page():
     
     # Check authentication
     if not is_authenticated():
-        st.warning("⚠️ Please log in to access the Organizer Portal.")
+        st.warning(" Please log in to access the Organizer Portal.")
         return
     
     # Get the authenticated organizer's email
@@ -82,10 +92,10 @@ def render_organizer_page():
     
     # Main tabs
     tab1, tab2, tab3, tab4 = st.tabs([
-        "📋 Manage Groups", 
-        "📅 Create Meeting", 
-        "📊 View Responses",
-        "👥 All Participants"
+        " Manage Groups", 
+        " Create Meeting", 
+        " View Responses",
+        " All Participants"
     ])
     
     with tab1:
@@ -103,7 +113,7 @@ def render_organizer_page():
 
 def render_group_management():
     """Render the group management interface."""
-    st.header("📋 Participant Groups")
+    st.header(" Participant Groups")
     st.markdown("Create supersets of participants (e.g., 'Math Faculty') and manage membership.")
     
     col1, col2 = st.columns([1, 2])
@@ -114,10 +124,10 @@ def render_group_management():
             group_name = st.text_input("Group Name", placeholder="e.g., Math Faculty")
             group_desc = st.text_area("Description", placeholder="Optional description...")
             
-            if st.form_submit_button("➕ Create Group", use_container_width=True):
+            if st.form_submit_button(" Create Group", use_container_width=True):
                 if group_name:
                     create_participant_group(group_name, group_desc)
-                    st.success(f"✅ Created group: {group_name}")
+                    st.success(f" Created group: {group_name}")
                     st.rerun()
                 else:
                     st.error("Please enter a group name.")
@@ -130,7 +140,7 @@ def render_group_management():
             st.info("No groups created yet. Create your first group!")
         else:
             for group in groups:
-                with st.expander(f"📁 {group['name']}", expanded=False):
+                with st.expander(f" {group['name']}", expanded=False):
                     st.markdown(f"*{group['description'] or 'No description'}*")
                     
                     members = get_group_members(group['id'])
@@ -174,14 +184,14 @@ def render_group_management():
                                 remove_participant_from_group(to_remove['id'], group['id'])
                                 st.rerun()
                     
-                    if st.button("🗑️ Delete Group", key=f"delete_{group['id']}", type="secondary"):
+                    if st.button(" Delete Group", key=f"delete_{group['id']}", type="secondary"):
                         delete_group(group['id'])
                         st.rerun()
 
 
 def render_participant_management():
     """Render participant management interface."""
-    st.header("👥 All Participants")
+    st.header(" All Participants")
     st.markdown("Add and manage individual participants who can be added to groups.")
     
     col1, col2 = st.columns([1, 2])
@@ -192,10 +202,10 @@ def render_participant_management():
             name = st.text_input("Full Name", placeholder="John Smith")
             email = st.text_input("Email", placeholder="john@university.edu")
             
-            if st.form_submit_button("➕ Add Participant", use_container_width=True):
+            if st.form_submit_button(" Add Participant", use_container_width=True):
                 if name and email:
                     create_participant(name, email)
-                    st.success(f"✅ Added: {name}")
+                    st.success(f" Added: {name}")
                     st.rerun()
                 else:
                     st.error("Please fill in all fields.")
@@ -217,7 +227,7 @@ def render_participant_management():
                     create_participant(parts[0], parts[1])
                     added += 1
             if added:
-                st.success(f"✅ Added {added} participants")
+                st.success(f" Added {added} participants")
                 st.rerun()
     
     with col2:
@@ -234,7 +244,7 @@ def render_participant_management():
 
 def render_meeting_creation():
     """Render the meeting creation interface."""
-    st.header("📅 Create New Meeting")
+    st.header(" Create New Meeting")
     
     # Check for existing draft meetings
     existing_meetings = get_meetings_by_organizer(st.session_state.organizer_email)
@@ -310,7 +320,7 @@ def render_meeting_creation():
             st.warning("No participants available. Add participants first.")
     
     if selected_participants:
-        st.success(f"✅ {len(selected_participants)} participant(s) selected")
+        st.success(f" {len(selected_participants)} participant(s) selected")
     
     # Time slots section
     st.markdown("---")
@@ -352,15 +362,15 @@ def render_meeting_creation():
     if st.session_state.get('meeting_created_success'):
         msg = st.session_state.pop('meeting_created_success')
         st.success(msg['message'])
-        with st.expander("📧 Email Status", expanded=True):
+        with st.expander(" Email Status", expanded=True):
             for name, success in msg['email_results']:
                 if success:
-                    st.write(f"✅ {name}")
+                    st.write(f" {name}")
                 else:
-                    st.write(f"❌ {name} - Failed to send")
+                    st.write(f" {name} - Failed to send")
     
     # Submit button (using a callback to handle submission)
-    if st.button("📧 Create & Send Invitations", use_container_width=True, type="primary"):
+    if st.button(" Create & Send Invitations", use_container_width=True, type="primary"):
         if not title:
             st.error("Please enter a meeting title.")
         elif not selected_participants:
@@ -413,7 +423,7 @@ def render_meeting_creation():
             
             # Store success message in session state to show after rerun
             st.session_state['meeting_created_success'] = {
-                'message': f"✅ Meeting '{title}' created! Invitations sent to {len(selected_participants)} participant(s).",
+                'message': f" Meeting '{title}' created! Invitations sent to {len(selected_participants)} participant(s).",
                 'email_results': email_results
             }
             
@@ -422,7 +432,7 @@ def render_meeting_creation():
 
 def render_response_view():
     """Render the response viewing interface."""
-    st.header("📊 Meeting Responses")
+    st.header(" Meeting Responses")
     
     # Try to use streamlit-autorefresh if available
     try:
@@ -430,9 +440,9 @@ def render_response_view():
         
         col_refresh1, col_refresh2, col_refresh3 = st.columns([2, 1, 1])
         with col_refresh1:
-            st.caption("💡 Data refreshes automatically when auto-refresh is enabled")
+            st.caption(" Data refreshes automatically when auto-refresh is enabled")
         with col_refresh2:
-            if st.button("🔄 Refresh Now", use_container_width=True):
+            if st.button(" Refresh Now", use_container_width=True):
                 st.rerun()
         with col_refresh3:
             auto_refresh = st.checkbox("Auto-refresh", value=False, help="Refresh every 30 seconds")
@@ -440,15 +450,15 @@ def render_response_view():
         if auto_refresh:
             # Auto-refresh every 30 seconds (30000 ms)
             st_autorefresh(interval=30000, limit=None, key="response_autorefresh")
-            st.info("⏱️ Auto-refresh enabled (every 30 seconds)")
+            st.info(" Auto-refresh enabled (every 30 seconds)")
     
     except ImportError:
         # Fallback if streamlit-autorefresh is not installed
         col_refresh1, col_refresh2 = st.columns([3, 1])
         with col_refresh1:
-            st.caption("💡 Click 'Refresh' to see the latest responses")
+            st.caption(" Click 'Refresh' to see the latest responses")
         with col_refresh2:
-            if st.button("🔄 Refresh Data", use_container_width=True):
+            if st.button(" Refresh Data", use_container_width=True):
                 st.rerun()
     
     meetings = get_meetings_by_organizer(st.session_state.organizer_email)
@@ -497,7 +507,7 @@ def render_response_view():
     st.markdown("---")
     
     # Response matrix
-    st.subheader("📊 Availability Matrix")
+    st.subheader(" Availability Matrix")
     
     # Initialize slot_scores to avoid UnboundLocalError
     slot_scores = []
@@ -520,26 +530,26 @@ def render_response_view():
                 if resp:
                     avail = resp['availability']
                     if avail == 'available':
-                        matrix_data[slot_str][participant['name']] = '✅'
+                        matrix_data[slot_str][participant['name']] = ''
                     elif avail == 'maybe':
-                        matrix_data[slot_str][participant['name']] = '🟡'
+                        matrix_data[slot_str][participant['name']] = ''
                     else:
-                        matrix_data[slot_str][participant['name']] = '❌'
+                        matrix_data[slot_str][participant['name']] = ''
                 elif not participant['responded']:
-                    matrix_data[slot_str][participant['name']] = '⏳'
+                    matrix_data[slot_str][participant['name']] = ''
                 else:
-                    matrix_data[slot_str][participant['name']] = '➖'
+                    matrix_data[slot_str][participant['name']] = ''
         
         df = pd.DataFrame(matrix_data).T
         
         # Calculate best slots
-        st.markdown("**Legend:** ✅ Available | 🟡 Maybe | ❌ Unavailable | ⏳ Pending | ➖ No response")
+        st.markdown("**Legend:**  Available |  Maybe |  Unavailable |  Pending |  No response")
         
         # Display matrix
         st.dataframe(df, use_container_width=True)
         
         # Best slot analysis
-        st.subheader("🎯 Best Slots")
+        st.subheader(" Best Slots")
         
         slot_scores = []
         for slot in slots:
@@ -568,49 +578,58 @@ def render_response_view():
         for i, slot in enumerate(slot_scores[:3]):
             if slot['available'] > 0:
                 if i == 0:
-                    st.success(f"🥇 **{slot['slot']}**: {slot['available']} available, {slot['maybe']} maybe")
+                    st.success(f" **{slot['slot']}**: {slot['available']} available, {slot['maybe']} maybe")
                 elif i == 1:
-                    st.info(f"🥈 **{slot['slot']}**: {slot['available']} available, {slot['maybe']} maybe")
+                    st.info(f" **{slot['slot']}**: {slot['available']} available, {slot['maybe']} maybe")
                 else:
-                    st.info(f"🥉 **{slot['slot']}**: {slot['available']} available, {slot['maybe']} maybe")
+                    st.info(f" **{slot['slot']}**: {slot['available']} available, {slot['maybe']} maybe")
     else:
         st.info("No responses received yet.")
     
-    # Suggested alternative slots
-    if suggested:
+    # Suggested alternative slots - only show if there are actual suggestions
+    if suggested and len(suggested) > 0:
         st.markdown("---")
-        st.subheader("💡 Suggested Alternative Slots")
+        st.subheader("Suggested Alternative Slots")
         
         for s in suggested:
-            st.write(f"• **{s['participant_name']}** suggested: {s['suggested_datetime']} - *{s['note'] or 'No note'}*")
+            suggested_dt = s['suggested_datetime']
+            # Format the datetime if it's in ISO format
+            try:
+                from datetime import datetime as dt
+                parsed_dt = dt.fromisoformat(suggested_dt)
+                suggested_dt = parsed_dt.strftime('%A, %B %d, %Y at %I:%M %p')
+            except:
+                pass
+            note_text = f" - {s['note']}" if s['note'] else ""
+            st.write(f"**{s['participant_name']}** suggested: {suggested_dt}{note_text}")
     
     # Participant status
     st.markdown("---")
-    st.subheader("👥 Participant Status")
+    st.subheader(" Participant Status")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("**✅ Responded:**")
+        st.markdown("** Responded:**")
         for p in participants:
             if p['responded']:
-                st.write(f"• {p['name']} ({p['email']}) - {p['responded_at'][:16] if p['responded_at'] else ''}")
+                st.write(f"- {p['name']} ({p['email']}) - {p['responded_at'][:16] if p['responded_at'] else ''}")
     
     with col2:
-        st.markdown("**⏳ Pending:**")
+        st.markdown("** Pending:**")
         for p in participants:
             if not p['responded']:
-                st.write(f"• {p['name']} ({p['email']})")
+                st.write(f"- {p['name']} ({p['email']})")
     
     # Actions
     st.markdown("---")
-    st.subheader("⚡ Actions")
+    st.subheader(" Actions")
     
     # Send Reminder
     col1, col2 = st.columns(2)
     
     with col1:
-        if st.button("📧 Send Reminder to Pending", use_container_width=True):
+        if st.button(" Send Reminder to Pending", use_container_width=True):
             pending = [p for p in participants if not p['responded']]
             if pending:
                 base_url = get_base_url()
@@ -630,19 +649,19 @@ def render_response_view():
                         response_url=response_url,
                         time_slots=slot_strings
                     )
-                st.success(f"📧 Reminder sent to {len(pending)} participant(s)")
+                st.success(f" Reminder sent to {len(pending)} participant(s)")
             else:
                 st.info("All participants have already responded!")
     
     with col2:
-        if st.button("🗑️ Cancel Meeting", use_container_width=True, type="secondary"):
+        if st.button(" Cancel Meeting", use_container_width=True, type="secondary"):
             update_meeting_status(meeting_id, 'cancelled')
             st.warning("Meeting cancelled.")
             st.rerun()
     
     # Finalize Meeting Section
     st.markdown("---")
-    st.subheader("📌 Finalize Meeting")
+    st.subheader(" Finalize Meeting")
     
     if not slot_scores:
         st.info("No responses yet. Wait for participants to respond before finalizing.")
@@ -672,17 +691,17 @@ def render_response_view():
             
             # Determine status indicator
             if available == total_participants:
-                status = "🟢 ALL AVAILABLE"
+                status = " ALL AVAILABLE"
             elif available + maybe == total_participants:
-                status = "🟡 All can attend (some tentative)"
+                status = " All can attend (some tentative)"
             elif available > 0:
-                status = f"🟠 {available}/{total_participants} confirmed"
+                status = f" {available}/{total_participants} confirmed"
             else:
-                status = f"🔴 No confirmations"
+                status = f" No confirmations"
             
             slot_options.append({
                 'slot_id': slot['slot_id'],
-                'display': f"{slot['slot']} — {status} | ✅{available} 🟡{maybe} ❌{unavailable}",
+                'display': f"{slot['slot']} - {status} | {available} {maybe} {unavailable}",
                 'slot_str': slot['slot'],
                 'available': available,
                 'maybe': maybe,
@@ -729,31 +748,31 @@ def render_response_view():
                         no_response_names.append(p['name'])
             
             with col_a:
-                st.markdown("**✅ Available:**")
+                st.markdown("** Available:**")
                 for name in available_names:
-                    st.write(f"• {name}")
+                    st.write(f"- {name}")
                 if not available_names:
                     st.caption("None")
             
             with col_b:
-                st.markdown("**🟡 Maybe:**")
+                st.markdown("** Maybe:**")
                 for name in maybe_names:
-                    st.write(f"• {name}")
+                    st.write(f"- {name}")
                 if not maybe_names:
                     st.caption("None")
             
             with col_c:
-                st.markdown("**❌ Unavailable:**")
+                st.markdown("** Unavailable:**")
                 for name in unavailable_names:
-                    st.write(f"• {name}")
+                    st.write(f"- {name}")
                 for name in no_response_names:
-                    st.write(f"• {name} (no response)")
+                    st.write(f"- {name} (no response)")
                 if not unavailable_names and not no_response_names:
                     st.caption("None")
             
             # Warning if not everyone is available
             if selected_slot_option['unavailable'] > 0 or no_response_names:
-                st.warning(f"⚠️ {selected_slot_option['unavailable'] + len(no_response_names)} participant(s) may not be able to attend this slot.")
+                st.warning(f" {selected_slot_option['unavailable'] + len(no_response_names)} participant(s) may not be able to attend this slot.")
             
             # Finalize button
             st.markdown("---")
@@ -768,7 +787,7 @@ def render_response_view():
             
             with col_final2:
                 finalize_disabled = not confirm
-                if st.button("✅ Finalize This Slot", use_container_width=True, type="primary", disabled=finalize_disabled):
+                if st.button(" Finalize This Slot", use_container_width=True, type="primary", disabled=finalize_disabled):
                     # Get the full slot datetime
                     selected_slot_obj = next(s for s in slots if s['id'] == selected_slot_id)
                     slot_dt = datetime.fromisoformat(selected_slot_obj['slot_datetime'])
@@ -791,7 +810,7 @@ def render_response_view():
                                 is_final=True
                             )
                     
-                    st.success(f"✅ Meeting finalized for: {final_slot_str}")
+                    st.success(f" Meeting finalized for: {final_slot_str}")
                     st.balloons()
                     st.rerun()
 
