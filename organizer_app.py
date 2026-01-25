@@ -94,8 +94,8 @@ def main():
         # Show login page
         st.markdown("""
         <div style="text-align: center; margin-bottom: 30px;">
-            <h1>📅 Meeting Scheduler</h1>
-            <p>Organizer Portal - Please log in to continue</p>
+            <h1>📅 Organizer Portal</h1>
+            <p>Please log in to continue</p>
         </div>
         """, unsafe_allow_html=True)
         
