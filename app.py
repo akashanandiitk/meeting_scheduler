@@ -246,7 +246,8 @@ def main():
 
 def render_home_page():
     """Render the home/landing page."""
-    
+
+    <!--
     st.markdown("""
     <div class="main-header">
         <div>
@@ -255,6 +256,7 @@ def render_home_page():
         </div>
     </div>
     """, unsafe_allow_html=True)
+    -->
     
     st.markdown("""
     Welcome to the Meeting Scheduler! This application helps you coordinate meetings 
