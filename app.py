@@ -320,20 +320,7 @@ def render_home_page():
     
     st.info("👈 Use the sidebar to navigate to the **Organizer Portal** or **Participant Portal**")
     
-    # Quick stats (if any data exists)
-    from database import get_all_groups, get_all_participants
     
-    groups = get_all_groups()
-    participants = get_all_participants()
-    
-    if groups or participants:
-        st.markdown("### 📊 Quick Stats")
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Groups", len(groups))
-        with col2:
-            st.metric("Participants", len(participants))
 
 
 if __name__ == "__main__":
