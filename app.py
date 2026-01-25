@@ -209,7 +209,7 @@ def main():
         if is_authenticated():
             nav_option = st.radio(
                 "Select Interface",
-                ["🏠 Home", "👔 Organizer Portal", "⚙️ Email Settings", "👤 Participant Portal"],
+                ["Home", "Organizer Portal", "Email Settings", "Participant Portal"],
                 label_visibility="collapsed"
             )
             # Show logout button
@@ -217,14 +217,14 @@ def main():
         else:
             nav_option = st.radio(
                 "Select Interface",
-                ["🏠 Home", "🔐 Organizer Login", "👤 Participant Portal"],
+                ["Home", "Organizer Login", "Participant Portal"],
                 label_visibility="collapsed"
             )
     
     # Main content based on navigation
-    if nav_option == "🏠 Home":
+    if nav_option == "Home":
         render_home_page()
-    elif nav_option == "👔 Organizer Portal":
+    elif nav_option == "Organizer Portal":
         # Requires authentication
         if is_authenticated():
             render_organizer_page()
@@ -232,15 +232,15 @@ def main():
             st.warning("⚠️ Please log in to access the Organizer Portal.")
             if render_login_page():
                 st.rerun()
-    elif nav_option == "🔐 Organizer Login":
+    elif nav_option == "Organizer Login":
         if render_login_page():
             st.rerun()
-    elif nav_option == "⚙️ Email Settings":
+    elif nav_option == "Email Settings":
         if is_authenticated():
             render_smtp_setup()
         else:
             st.warning("⚠️ Please log in to access Email Settings.")
-    elif nav_option == "👤 Participant Portal":
+    elif nav_option == "Participant Portal":
         render_participant_lookup()
 
 
@@ -258,7 +258,7 @@ def render_home_page():
     with col1:
         st.markdown("""
         <div class="info-card">
-            <h3>👔 For Organizers</h3>
+            <h3>For Organizers</h3>
             <ul>
                 <li>Create participant groups (e.g., "Math Faculty")</li>
                 <li>Select subsets for specific meetings</li>
@@ -274,7 +274,7 @@ def render_home_page():
     with col2:
         st.markdown("""
         <div class="info-card">
-            <h3>👤 For Participants</h3>
+            <h3>For Participants</h3>
             <ul>
                 <li>No login required - token-based access</li>
                 <li>Simple availability selection</li>
@@ -288,7 +288,7 @@ def render_home_page():
     
     st.markdown("---")
     
-    st.markdown("### 🚀 Getting Started")
+    st.markdown("### Getting Started")
     
     col1, col2, col3 = st.columns(3)
     
@@ -317,9 +317,6 @@ def render_home_page():
         """)
     
     st.markdown("---")
-    
-    st.info("👈 Use the sidebar to navigate to the **Organizer Portal** or **Participant Portal**")
-    
     
 
 
