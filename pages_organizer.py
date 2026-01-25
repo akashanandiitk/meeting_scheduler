@@ -507,7 +507,7 @@ def render_response_view():
     st.markdown("---")
     
     # Response matrix
-    st.subheader(" Availability Matrix")
+    st.subheader("Availability Matrix")
     
     # Initialize slot_scores to avoid UnboundLocalError
     slot_scores = []
@@ -530,26 +530,26 @@ def render_response_view():
                 if resp:
                     avail = resp['availability']
                     if avail == 'available':
-                        matrix_data[slot_str][participant['name']] = ''
+                        matrix_data[slot_str][participant['name']] = '✅'
                     elif avail == 'maybe':
-                        matrix_data[slot_str][participant['name']] = ''
+                        matrix_data[slot_str][participant['name']] = '🟡'
                     else:
-                        matrix_data[slot_str][participant['name']] = ''
+                        matrix_data[slot_str][participant['name']] = '❌'
                 elif not participant['responded']:
-                    matrix_data[slot_str][participant['name']] = ''
+                    matrix_data[slot_str][participant['name']] = '⏳'
                 else:
-                    matrix_data[slot_str][participant['name']] = ''
+                    matrix_data[slot_str][participant['name']] = '➖'
         
         df = pd.DataFrame(matrix_data).T
         
         # Calculate best slots
-        st.markdown("**Legend:**  Available |  Maybe |  Unavailable |  Pending |  No response")
+        st.markdown("**Legend:** ✅ Available | 🟡 Maybe | ❌ Unavailable | ⏳ Pending | ➖ No response")
         
         # Display matrix
         st.dataframe(df, use_container_width=True)
         
         # Best slot analysis
-        st.subheader(" Best Slots")
+        st.subheader("Best Slots")
         
         slot_scores = []
         for slot in slots:
@@ -691,17 +691,17 @@ def render_response_view():
             
             # Determine status indicator
             if available == total_participants:
-                status = " ALL AVAILABLE"
+                status = "🟢 ALL AVAILABLE"
             elif available + maybe == total_participants:
-                status = " All can attend (some tentative)"
+                status = "🟡 All can attend (some tentative)"
             elif available > 0:
-                status = f" {available}/{total_participants} confirmed"
+                status = f"🟠 {available}/{total_participants} confirmed"
             else:
-                status = f" No confirmations"
+                status = f"🔴 No confirmations"
             
             slot_options.append({
                 'slot_id': slot['slot_id'],
-                'display': f"{slot['slot']} - {status} | {available} {maybe} {unavailable}",
+                'display': f"{slot['slot']} - {status} | ✅{available} 🟡{maybe} ❌{unavailable}",
                 'slot_str': slot['slot'],
                 'available': available,
                 'maybe': maybe,
@@ -748,21 +748,21 @@ def render_response_view():
                         no_response_names.append(p['name'])
             
             with col_a:
-                st.markdown("** Available:**")
+                st.markdown("**✅ Available:**")
                 for name in available_names:
                     st.write(f"- {name}")
                 if not available_names:
                     st.caption("None")
             
             with col_b:
-                st.markdown("** Maybe:**")
+                st.markdown("**🟡 Maybe:**")
                 for name in maybe_names:
                     st.write(f"- {name}")
                 if not maybe_names:
                     st.caption("None")
             
             with col_c:
-                st.markdown("** Unavailable:**")
+                st.markdown("**❌ Unavailable:**")
                 for name in unavailable_names:
                     st.write(f"- {name}")
                 for name in no_response_names:
@@ -772,7 +772,7 @@ def render_response_view():
             
             # Warning if not everyone is available
             if selected_slot_option['unavailable'] > 0 or no_response_names:
-                st.warning(f" {selected_slot_option['unavailable'] + len(no_response_names)} participant(s) may not be able to attend this slot.")
+                st.warning(f"⚠️ {selected_slot_option['unavailable'] + len(no_response_names)} participant(s) may not be able to attend this slot.")
             
             # Finalize button
             st.markdown("---")
@@ -787,7 +787,7 @@ def render_response_view():
             
             with col_final2:
                 finalize_disabled = not confirm
-                if st.button(" Finalize This Slot", use_container_width=True, type="primary", disabled=finalize_disabled):
+                if st.button("Finalize This Slot", use_container_width=True, type="primary", disabled=finalize_disabled):
                     # Get the full slot datetime
                     selected_slot_obj = next(s for s in slots if s['id'] == selected_slot_id)
                     slot_dt = datetime.fromisoformat(selected_slot_obj['slot_datetime'])

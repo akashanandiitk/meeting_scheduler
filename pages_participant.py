@@ -257,7 +257,7 @@ def render_participant_page(token: str = None):
                 base_url=base_url
             )
             
-            st.success(" Your response has been submitted! Thank you.")
+            st.success("✅ Your response has been submitted! Thank you.")
             st.balloons()
             
             # Show summary
@@ -266,7 +266,7 @@ def render_participant_page(token: str = None):
                 slot_dt = datetime.fromisoformat(slot['slot_datetime'])
                 slot_display = slot_dt.strftime('%a %m/%d %I:%M%p')
                 avail = st.session_state[session_key].get(slot['id'], 'unavailable')
-                icon = {'available': '', 'maybe': '', 'unavailable': ''}[avail]
+                icon = {'available': '✅', 'maybe': '🟡', 'unavailable': '❌'}[avail]
                 st.write(f"{icon} {slot_display}")
             
             st.info("You can revisit this link anytime to update your response.")
