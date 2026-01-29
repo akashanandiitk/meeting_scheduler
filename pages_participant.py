@@ -222,14 +222,14 @@ def render_participant_page(token: str = None):
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        if st.button(" Submit Response", use_container_width=True, type="primary"):
+        if st.button("Submit Response", use_container_width=True, type="primary"):
             # Save all responses using meeting-specific session key
             session_key = f'slot_responses_{meeting_id}'
             for slot in slots:
                 availability = st.session_state[session_key].get(slot['id'], 'unavailable')
                 save_response(
                     meeting_id=meeting_id,
-                    participant_id=participant_id,
+                    contact_id=participant_id,
                     slot_id=slot['id'],
                     availability=availability
                 )
@@ -239,7 +239,7 @@ def render_participant_page(token: str = None):
                 alt_datetime = datetime.combine(alt_date, alt_time)
                 add_suggested_slot(
                     meeting_id=meeting_id,
-                    participant_id=participant_id,
+                    contact_id=participant_id,
                     suggested_datetime=alt_datetime.isoformat(),
                     note=alt_note
                 )
