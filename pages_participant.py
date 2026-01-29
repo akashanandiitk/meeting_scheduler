@@ -257,8 +257,7 @@ def render_participant_page(token: str = None):
                 base_url=base_url
             )
             
-            st.success("✅ Your response has been submitted! Thank you.")
-            st.balloons()
+            st.success("Your response has been submitted successfully. Thank you!")
             
             # Show summary
             st.markdown("### Your Response Summary:")

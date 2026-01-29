@@ -665,7 +665,7 @@ def render_response_view():
                 # Find response for this slot
                 resp = next(
                     (r for r in responses 
-                     if r['slot_id'] == slot['id'] and r['participant_id'] == participant['id']),
+                     if r['slot_id'] == slot['id'] and r['contact_id'] == participant['id']),
                     None
                 )
                 if resp:
@@ -872,7 +872,7 @@ def render_response_view():
             
             for p in participants:
                 resp = next(
-                    (r for r in responses if r['slot_id'] == selected_slot_id and r['participant_id'] == p['id']),
+                    (r for r in responses if r['slot_id'] == selected_slot_id and r['contact_id'] == p['id']),
                     None
                 )
                 if resp:

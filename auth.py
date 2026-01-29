@@ -453,8 +453,13 @@ def render_smtp_setup():
                         "from_name": from_name
                     }
                     save_smtp_config(organizer_email, new_config)
-                    st.success("Configuration saved!")
+                    st.session_state['smtp_saved'] = True
                     st.rerun()
+        
+        # Show success message after rerun
+        if st.session_state.get('smtp_saved'):
+            st.success("Configuration saved successfully!")
+            del st.session_state['smtp_saved']
         
         # Test button outside the form
         st.markdown("---")
