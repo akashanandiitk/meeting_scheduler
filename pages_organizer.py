@@ -1,18 +1,28 @@
 """
 Organizer Module for Meeting Scheduler
-Handles group management, meeting creation, and response tracking.
+Handles contact management, group management, meeting creation, and response tracking.
 """
 
 import streamlit as st
 from datetime import datetime, timedelta
 import pandas as pd
 from database import (
-    create_participant_group, get_all_groups, get_group_by_id, delete_group,
-    create_participant, get_all_participants, add_participant_to_group,
-    remove_participant_from_group, get_group_members,
+    # Contact functions
+    create_contact, get_contacts_by_owner, get_contact_by_id,
+    update_contact, delete_contact, contact_in_use,
+    # Group functions  
+    create_contact_group, get_groups_by_owner, get_group_by_id,
+    update_group, delete_group,
+    # Group membership
+    add_contact_to_group, remove_contact_from_group, get_group_members,
+    # Group sharing
+    set_group_shared, share_group_with, unshare_group_with, get_group_shares,
+    # Meeting functions
     create_meeting, get_meeting_by_id, get_meetings_by_organizer,
     update_meeting_status, delete_meeting,
+    # Time slot functions
     add_time_slot, get_meeting_slots, delete_time_slot,
+    # Participant functions
     add_meeting_participant, get_meeting_participants,
     get_responses_for_meeting, get_suggested_slots
 )
@@ -92,55 +102,158 @@ def render_organizer_page():
     
     # Main tabs
     tab1, tab2, tab3, tab4 = st.tabs([
-        " Manage Groups", 
-        " Create Meeting", 
-        " View Responses",
-        " All Participants"
+        "My Contacts", 
+        "Contact Groups", 
+        "Create Meeting", 
+        "View Responses"
     ])
     
     with tab1:
-        render_group_management()
+        render_contacts_management()
     
     with tab2:
-        render_meeting_creation()
+        render_group_management()
     
     with tab3:
-        render_response_view()
+        render_meeting_creation()
     
     with tab4:
-        render_participant_management()
+        render_response_view()
+
+
+def render_contacts_management():
+    """Render the contacts management interface."""
+    st.header("My Contacts")
+    st.markdown("Manage your private contact list. These contacts are only visible to you.")
+    
+    organizer_email = st.session_state.organizer_email
+    
+    # Get existing contacts
+    contacts = get_contacts_by_owner(organizer_email)
+    
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        st.subheader("Add New Contact")
+        
+        new_name = st.text_input("Name", key="new_contact_name", placeholder="John Doe")
+        new_email = st.text_input("Email", key="new_contact_email", placeholder="john@example.com")
+        
+        if st.button("Add Contact", use_container_width=True, type="primary"):
+            if new_name and new_email:
+                contact_id = create_contact(organizer_email, new_name, new_email)
+                if contact_id:
+                    st.success(f"Contact '{new_name}' added!")
+                    st.rerun()
+                else:
+                    st.error("Failed to add contact.")
+            else:
+                st.error("Please enter both name and email.")
+    
+    with col2:
+        st.subheader(f"Your Contacts ({len(contacts)})")
+        
+        if not contacts:
+            st.info("No contacts yet. Add your first contact using the form on the left.")
+        else:
+            # Search/filter
+            search = st.text_input("Search contacts", key="contact_search", placeholder="Search by name or email...")
+            
+            filtered_contacts = contacts
+            if search:
+                search_lower = search.lower()
+                filtered_contacts = [
+                    c for c in contacts 
+                    if search_lower in c['name'].lower() or search_lower in c['email'].lower()
+                ]
+            
+            # Display contacts
+            for contact in filtered_contacts:
+                with st.expander(f"{contact['name']} ({contact['email']})"):
+                    # Edit form
+                    edit_col1, edit_col2 = st.columns(2)
+                    with edit_col1:
+                        edit_name = st.text_input(
+                            "Name", 
+                            value=contact['name'], 
+                            key=f"edit_name_{contact['id']}"
+                        )
+                    with edit_col2:
+                        edit_email = st.text_input(
+                            "Email", 
+                            value=contact['email'], 
+                            key=f"edit_email_{contact['id']}"
+                        )
+                    
+                    btn_col1, btn_col2, btn_col3 = st.columns(3)
+                    
+                    with btn_col1:
+                        if st.button("Save Changes", key=f"save_{contact['id']}", use_container_width=True):
+                            if update_contact(contact['id'], edit_name, edit_email):
+                                st.success("Contact updated!")
+                                st.rerun()
+                            else:
+                                st.error("Failed to update. Email may already exist.")
+                    
+                    with btn_col2:
+                        # Check if contact is in use
+                        meetings_using = contact_in_use(contact['id'])
+                        if meetings_using:
+                            st.warning(f"Used in {len(meetings_using)} meeting(s)")
+                    
+                    with btn_col3:
+                        if st.button("Delete", key=f"del_{contact['id']}", type="secondary", use_container_width=True):
+                            if contact_in_use(contact['id']):
+                                st.error("Cannot delete: contact is used in meetings.")
+                            else:
+                                if delete_contact(contact['id']):
+                                    st.success("Contact deleted!")
+                                    st.rerun()
 
 
 def render_group_management():
     """Render the group management interface."""
-    st.header(" Participant Groups")
-    st.markdown("Create supersets of participants (e.g., 'Math Faculty') and manage membership.")
+    st.header("Contact Groups")
+    st.markdown("Organize your contacts into groups for easy meeting scheduling. You can optionally share groups with other organizers.")
+    
+    organizer_email = st.session_state.organizer_email
+    contacts = get_contacts_by_owner(organizer_email)
     
     col1, col2 = st.columns([1, 2])
     
     with col1:
         st.subheader("Create New Group")
-        with st.form("create_group_form"):
-            group_name = st.text_input("Group Name", placeholder="e.g., Math Faculty")
-            group_desc = st.text_area("Description", placeholder="Optional description...")
-            
-            if st.form_submit_button(" Create Group", use_container_width=True):
-                if group_name:
-                    create_participant_group(group_name, group_desc)
-                    st.success(f" Created group: {group_name}")
-                    st.rerun()
-                else:
-                    st.error("Please enter a group name.")
+        
+        group_name = st.text_input("Group Name", placeholder="e.g., Math Faculty", key="new_group_name")
+        group_desc = st.text_area("Description", placeholder="Optional description...", key="new_group_desc")
+        
+        if st.button("Create Group", use_container_width=True, type="primary"):
+            if group_name:
+                create_contact_group(organizer_email, group_name, group_desc)
+                st.success(f"Created group: {group_name}")
+                st.rerun()
+            else:
+                st.error("Please enter a group name.")
     
     with col2:
-        st.subheader("Existing Groups")
-        groups = get_all_groups()
+        st.subheader("Your Groups")
+        groups = get_groups_by_owner(organizer_email)
         
         if not groups:
             st.info("No groups created yet. Create your first group!")
         else:
             for group in groups:
-                with st.expander(f" {group['name']}", expanded=False):
+                is_shared_group = group.get('access_type') == 'shared'
+                group_label = f"{group['name']}"
+                if is_shared_group:
+                    group_label += f" (shared by {group.get('shared_by', 'unknown')})"
+                elif group.get('is_shared'):
+                    group_label += " [Shared]"
+                
+                with st.expander(group_label, expanded=False):
+                    if is_shared_group:
+                        st.info("This group was shared with you. You can use it but cannot edit it.")
+                    
                     st.markdown(f"*{group['description'] or 'No description'}*")
                     
                     members = get_group_members(group['id'])
@@ -150,101 +263,124 @@ def render_group_management():
                         member_df = pd.DataFrame(members)[['name', 'email']]
                         st.dataframe(member_df, use_container_width=True, hide_index=True)
                     
-                    # Add member to group
-                    all_participants = get_all_participants()
-                    member_ids = {m['id'] for m in members}
-                    available = [p for p in all_participants if p['id'] not in member_ids]
-                    
-                    if available:
-                        col_a, col_b = st.columns([3, 1])
-                        with col_a:
-                            selected = st.selectbox(
-                                "Add member",
-                                options=available,
-                                format_func=lambda x: f"{x['name']} ({x['email']})",
-                                key=f"add_member_{group['id']}"
+                    # Only allow editing if user owns the group
+                    if not is_shared_group:
+                        st.markdown("---")
+                        
+                        # Edit group details
+                        edit_col1, edit_col2 = st.columns(2)
+                        with edit_col1:
+                            edit_name = st.text_input(
+                                "Group Name",
+                                value=group['name'],
+                                key=f"edit_grp_name_{group['id']}"
                             )
-                        with col_b:
-                            if st.button("Add", key=f"btn_add_{group['id']}"):
-                                add_participant_to_group(selected['id'], group['id'])
-                                st.rerun()
-                    
-                    # Remove member
-                    if members:
-                        col_a, col_b = st.columns([3, 1])
-                        with col_a:
-                            to_remove = st.selectbox(
-                                "Remove member",
-                                options=members,
-                                format_func=lambda x: f"{x['name']} ({x['email']})",
-                                key=f"remove_member_{group['id']}"
+                        with edit_col2:
+                            edit_desc = st.text_input(
+                                "Description",
+                                value=group['description'] or "",
+                                key=f"edit_grp_desc_{group['id']}"
                             )
-                        with col_b:
-                            if st.button("Remove", key=f"btn_remove_{group['id']}"):
-                                remove_participant_from_group(to_remove['id'], group['id'])
-                                st.rerun()
-                    
-                    if st.button(" Delete Group", key=f"delete_{group['id']}", type="secondary"):
-                        delete_group(group['id'])
-                        st.rerun()
-
-
-def render_participant_management():
-    """Render participant management interface."""
-    st.header(" All Participants")
-    st.markdown("Add and manage individual participants who can be added to groups.")
-    
-    col1, col2 = st.columns([1, 2])
-    
-    with col1:
-        st.subheader("Add New Participant")
-        with st.form("add_participant_form"):
-            name = st.text_input("Full Name", placeholder="John Smith")
-            email = st.text_input("Email", placeholder="john@university.edu")
-            
-            if st.form_submit_button(" Add Participant", use_container_width=True):
-                if name and email:
-                    create_participant(name, email)
-                    st.success(f" Added: {name}")
-                    st.rerun()
-                else:
-                    st.error("Please fill in all fields.")
-        
-        # Bulk add
-        st.markdown("---")
-        st.subheader("Bulk Add")
-        bulk_text = st.text_area(
-            "Paste names and emails",
-            placeholder="John Smith, john@uni.edu\nJane Doe, jane@uni.edu",
-            height=100
-        )
-        if st.button("Import", use_container_width=True):
-            lines = [l.strip() for l in bulk_text.strip().split('\n') if l.strip()]
-            added = 0
-            for line in lines:
-                parts = [p.strip() for p in line.split(',')]
-                if len(parts) >= 2:
-                    create_participant(parts[0], parts[1])
-                    added += 1
-            if added:
-                st.success(f" Added {added} participants")
-                st.rerun()
-    
-    with col2:
-        st.subheader("All Participants")
-        participants = get_all_participants()
-        
-        if participants:
-            df = pd.DataFrame(participants)[['name', 'email', 'created_at']]
-            df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d')
-            st.dataframe(df, use_container_width=True, hide_index=True)
-        else:
-            st.info("No participants added yet.")
+                        
+                        if st.button("Save Group Details", key=f"save_grp_{group['id']}"):
+                            update_group(group['id'], edit_name, edit_desc)
+                            st.success("Group updated!")
+                            st.rerun()
+                        
+                        st.markdown("---")
+                        
+                        # Add member to group
+                        member_ids = {m['id'] for m in members}
+                        available = [c for c in contacts if c['id'] not in member_ids]
+                        
+                        if available:
+                            add_col1, add_col2 = st.columns([3, 1])
+                            with add_col1:
+                                selected = st.selectbox(
+                                    "Add contact to group",
+                                    options=available,
+                                    format_func=lambda x: f"{x['name']} ({x['email']})",
+                                    key=f"add_member_{group['id']}"
+                                )
+                            with add_col2:
+                                if st.button("Add", key=f"btn_add_{group['id']}"):
+                                    add_contact_to_group(selected['id'], group['id'])
+                                    st.rerun()
+                        elif not contacts:
+                            st.warning("Add contacts first in the 'My Contacts' tab.")
+                        
+                        # Remove member
+                        if members:
+                            rem_col1, rem_col2 = st.columns([3, 1])
+                            with rem_col1:
+                                to_remove = st.selectbox(
+                                    "Remove from group",
+                                    options=members,
+                                    format_func=lambda x: f"{x['name']} ({x['email']})",
+                                    key=f"remove_member_{group['id']}"
+                                )
+                            with rem_col2:
+                                if st.button("Remove", key=f"btn_remove_{group['id']}"):
+                                    remove_contact_from_group(to_remove['id'], group['id'])
+                                    st.rerun()
+                        
+                        st.markdown("---")
+                        
+                        # Sharing options
+                        st.markdown("**Sharing**")
+                        current_shares = get_group_shares(group['id'])
+                        
+                        is_shared = group.get('is_shared', False)
+                        share_toggle = st.checkbox(
+                            "Allow sharing this group",
+                            value=is_shared,
+                            key=f"share_toggle_{group['id']}"
+                        )
+                        
+                        if share_toggle != is_shared:
+                            set_group_shared(group['id'], share_toggle)
+                            st.rerun()
+                        
+                        if share_toggle:
+                            share_col1, share_col2 = st.columns([3, 1])
+                            with share_col1:
+                                share_email = st.text_input(
+                                    "Share with (email)",
+                                    placeholder="colleague@example.com",
+                                    key=f"share_email_{group['id']}"
+                                )
+                            with share_col2:
+                                if st.button("Share", key=f"btn_share_{group['id']}"):
+                                    if share_email:
+                                        share_group_with(group['id'], share_email)
+                                        st.success(f"Shared with {share_email}")
+                                        st.rerun()
+                            
+                            if current_shares:
+                                st.markdown("**Currently shared with:**")
+                                for shared_email in current_shares:
+                                    sh_col1, sh_col2 = st.columns([3, 1])
+                                    with sh_col1:
+                                        st.write(f"- {shared_email}")
+                                    with sh_col2:
+                                        if st.button("Revoke", key=f"unshare_{group['id']}_{shared_email}"):
+                                            unshare_group_with(group['id'], shared_email)
+                                            st.rerun()
+                        
+                        st.markdown("---")
+                        
+                        # Delete group
+                        if st.button("Delete Group", key=f"delete_{group['id']}", type="secondary"):
+                            delete_group(group['id'])
+                            st.success("Group deleted!")
+                            st.rerun()
 
 
 def render_meeting_creation():
     """Render the meeting creation interface."""
-    st.header(" Create New Meeting")
+    st.header("Create New Meeting")
+    
+    organizer_email = st.session_state.organizer_email
     
     # Check for existing draft meetings
     existing_meetings = get_meetings_by_organizer(st.session_state.organizer_email)
@@ -272,23 +408,26 @@ def render_meeting_creation():
     st.markdown("---")
     st.subheader("Select Participants")
     
+    # Get contacts and groups for this organizer
+    contacts = get_contacts_by_owner(organizer_email)
+    groups = get_groups_by_owner(organizer_email)
+    
     # Source selection
     source = st.radio(
         "Add participants from:",
-        ["Existing Group", "Individual Selection"],
+        ["Contact Group", "Individual Contacts"],
         horizontal=True,
         key="participant_source"
     )
     
     selected_participants = []
     
-    if source == "Existing Group":
-        groups = get_all_groups()
+    if source == "Contact Group":
         if groups:
             selected_group = st.selectbox(
                 "Select Group",
                 options=groups,
-                format_func=lambda x: f"{x['name']} ({len(get_group_members(x['id']))} members)",
+                format_func=lambda x: f"{x['name']} ({len(get_group_members(x['id']))} members)" + (" [Shared]" if x.get('access_type') == 'shared' else ""),
                 key="selected_group"
             )
             if selected_group:
@@ -296,31 +435,33 @@ def render_meeting_creation():
                 st.write(f"**Members in {selected_group['name']}:**")
                 
                 # Allow selecting subset
-                selected_ids = st.multiselect(
-                    "Select members (leave empty for all)",
-                    options=[m['id'] for m in members],
-                    format_func=lambda x: next(m['name'] for m in members if m['id'] == x),
-                    default=[m['id'] for m in members],
-                    key="selected_group_members"
-                )
-                selected_participants = [m for m in members if m['id'] in selected_ids]
+                if members:
+                    selected_ids = st.multiselect(
+                        "Select members (leave empty for all)",
+                        options=[m['id'] for m in members],
+                        format_func=lambda x: next(m['name'] for m in members if m['id'] == x),
+                        default=[m['id'] for m in members],
+                        key="selected_group_members"
+                    )
+                    selected_participants = [m for m in members if m['id'] in selected_ids]
+                else:
+                    st.warning("This group has no members. Add contacts to it first.")
         else:
-            st.warning("No groups available. Create a group first or use Individual Selection.")
+            st.warning("No groups available. Create a group in the 'Contact Groups' tab first.")
     else:
-        all_participants = get_all_participants()
-        if all_participants:
+        if contacts:
             selected_ids = st.multiselect(
-                "Select Participants",
-                options=[p['id'] for p in all_participants],
-                format_func=lambda x: next(f"{p['name']} ({p['email']})" for p in all_participants if p['id'] == x),
-                key="selected_individual_participants"
+                "Select Contacts",
+                options=[c['id'] for c in contacts],
+                format_func=lambda x: next(f"{c['name']} ({c['email']})" for c in contacts if c['id'] == x),
+                key="selected_individual_contacts"
             )
-            selected_participants = [p for p in all_participants if p['id'] in selected_ids]
+            selected_participants = [c for c in contacts if c['id'] in selected_ids]
         else:
-            st.warning("No participants available. Add participants first.")
+            st.warning("No contacts available. Add contacts in the 'My Contacts' tab first.")
     
     if selected_participants:
-        st.success(f" {len(selected_participants)} participant(s) selected")
+        st.success(f"{len(selected_participants)} participant(s) selected")
     
     # Time slots section
     st.markdown("---")

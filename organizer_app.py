@@ -72,7 +72,8 @@ def main():
         st.markdown("""
         <div style="text-align: center; padding: 20px 0;">
             <h1 style="color: #667eea; margin: 0;">📅</h1>
-            <h2 style="color: #333; margin: 5px 0;">Organizer Portal</h2>
+            <h2 style="color: #333; margin: 5px 0;">Meeting Scheduler</h2>
+            <p style="color: #666;">Organizer Portal</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -94,8 +95,8 @@ def main():
         # Show login page
         st.markdown("""
         <div style="text-align: center; margin-bottom: 30px;">
-            <h1>📅 Organizer Portal</h1>
-            <p>Please log in to continue</p>
+            <h1>📅 Meeting Scheduler</h1>
+            <p>Organizer Portal - Please log in to continue</p>
         </div>
         """, unsafe_allow_html=True)
         
