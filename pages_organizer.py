@@ -850,13 +850,31 @@ def render_response_view():
                 'participation_rate': participation_rate
             })
         
-        # Slot selector
+        # Slot selector - use meeting-specific key and find index for current selection
+        selector_key = f"finalize_slot_{meeting_id}"
+        
+        # Get previously selected slot_id from session state
+        prev_selected_id = st.session_state.get(f"{selector_key}_id")
+        
+        # Find the index of previously selected slot, default to 0
+        default_index = 0
+        if prev_selected_id:
+            for i, opt in enumerate(slot_options):
+                if opt['slot_id'] == prev_selected_id:
+                    default_index = i
+                    break
+        
         selected_slot_option = st.selectbox(
             "Choose time slot",
             options=slot_options,
+            index=default_index,
             format_func=lambda x: x['display'],
-            key="finalize_slot_selector"
+            key=selector_key
         )
+        
+        # Store the selected slot_id in session state
+        if selected_slot_option:
+            st.session_state[f"{selector_key}_id"] = selected_slot_option['slot_id']
         
         if selected_slot_option:
             # Show who is available for selected slot
@@ -923,7 +941,7 @@ def render_response_view():
             with col_final1:
                 confirm = st.checkbox(
                     f"I confirm I want to finalize the meeting for **{selected_slot_option['slot_str']}**",
-                    key="confirm_finalize"
+                    key=f"confirm_finalize_{meeting_id}"
                 )
             
             with col_final2:
