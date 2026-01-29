@@ -361,7 +361,7 @@ def render_login_page() -> bool:
 
 def render_smtp_setup():
     """Render SMTP configuration interface."""
-    st.subheader(" Email Configuration")
+    st.subheader("Email Configuration")
     st.markdown("""
     Configure your SMTP settings to send email invitations. 
     Your credentials are stored locally and never shared.
@@ -371,12 +371,12 @@ def render_smtp_setup():
     current_config = load_smtp_config(organizer_email) or {}
     
     # Show current status
-    if current_config.get("smtp_server"):
-        st.success(f" Email configured: {current_config.get('from_email', 'Not set')}")
+    if current_config.get("smtp_server") and current_config.get("smtp_password"):
+        st.success(f"Email configured: {current_config.get('from_email', 'Not set')}")
     else:
-        st.warning(" Email not configured. Invitations will be simulated.")
+        st.warning("Email not configured. Invitations will be simulated.")
     
-    with st.expander(" Configure SMTP Settings", expanded=not current_config.get("smtp_server")):
+    with st.expander("Configure SMTP Settings", expanded=not current_config.get("smtp_server")):
         st.markdown("""
         **Common SMTP Settings:**
         - **Gmail**: smtp.gmail.com, Port 587 (requires App Password)
@@ -384,85 +384,93 @@ def render_smtp_setup():
         - **Yahoo**: smtp.mail.yahoo.com, Port 587
         """)
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            smtp_server = st.text_input(
-                "SMTP Server",
-                value=current_config.get("smtp_server", "smtp.gmail.com"),
-                key="smtp_server"
-            )
-            smtp_port = st.number_input(
-                "SMTP Port",
-                value=current_config.get("smtp_port", 587),
-                min_value=1,
-                max_value=65535,
-                key="smtp_port"
-            )
-        
-        with col2:
-            smtp_username = st.text_input(
-                "SMTP Username",
-                value=current_config.get("smtp_username", ""),
-                placeholder="your-email@gmail.com",
-                key="smtp_username"
-            )
-            smtp_password = st.text_input(
-                "SMTP Password / App Password",
-                type="password",
-                value="",
-                placeholder="Enter password to update",
-                key="smtp_password",
-                help="For Gmail, use an App Password (not your regular password)"
-            )
-        
-        from_email = st.text_input(
-            "From Email Address",
-            value=current_config.get("from_email", organizer_email),
-            key="from_email"
-        )
-        
-        from_name = st.text_input(
-            "From Name",
-            value=current_config.get("from_name", "Meeting Scheduler"),
-            key="from_name"
-        )
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button(" Save Configuration", use_container_width=True, type="primary"):
-                new_config = {
-                    "smtp_server": smtp_server,
-                    "smtp_port": int(smtp_port),
-                    "smtp_username": smtp_username,
-                    "smtp_password": smtp_password if smtp_password else current_config.get("smtp_password", ""),
-                    "from_email": from_email,
-                    "from_name": from_name
-                }
-                save_smtp_config(organizer_email, new_config)
-                st.success(" Configuration saved!")
-                st.rerun()
-        
-        with col2:
-            if st.button(" Test Email", use_container_width=True):
-                test_config = {
-                    "smtp_server": smtp_server,
-                    "smtp_port": int(smtp_port),
-                    "smtp_username": smtp_username,
-                    "smtp_password": smtp_password if smtp_password else current_config.get("smtp_password", ""),
-                    "from_email": from_email,
-                    "from_name": from_name
-                }
+        with st.form("smtp_config_form"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                smtp_server = st.text_input(
+                    "SMTP Server",
+                    value=current_config.get("smtp_server", "smtp.gmail.com"),
+                    key="smtp_server"
+                )
+                smtp_port = st.number_input(
+                    "SMTP Port",
+                    value=current_config.get("smtp_port", 587),
+                    min_value=1,
+                    max_value=65535,
+                    key="smtp_port"
+                )
+            
+            with col2:
+                smtp_username = st.text_input(
+                    "SMTP Username",
+                    value=current_config.get("smtp_username", ""),
+                    placeholder="your-email@gmail.com",
+                    key="smtp_username"
+                )
                 
-                # Import here to avoid circular imports
+                # Show hint if password is already set
+                password_help = "For Gmail, use an App Password (not your regular password)"
+                if current_config.get("smtp_password"):
+                    password_help = "Leave empty to keep existing password. " + password_help
+                
+                smtp_password = st.text_input(
+                    "SMTP Password / App Password",
+                    type="password",
+                    value="",
+                    placeholder="Enter password" + (" (leave empty to keep current)" if current_config.get("smtp_password") else ""),
+                    key="smtp_password",
+                    help=password_help
+                )
+            
+            from_email = st.text_input(
+                "From Email Address",
+                value=current_config.get("from_email", organizer_email),
+                key="from_email"
+            )
+            
+            from_name = st.text_input(
+                "From Name",
+                value=current_config.get("from_name", "Meeting Scheduler"),
+                key="from_name"
+            )
+            
+            submitted = st.form_submit_button("Save Configuration", use_container_width=True, type="primary")
+            
+            if submitted:
+                # Use new password if provided, otherwise keep existing
+                final_password = smtp_password if smtp_password else current_config.get("smtp_password", "")
+                
+                if not final_password:
+                    st.error("Please enter an SMTP password.")
+                else:
+                    new_config = {
+                        "smtp_server": smtp_server,
+                        "smtp_port": int(smtp_port),
+                        "smtp_username": smtp_username,
+                        "smtp_password": final_password,
+                        "from_email": from_email,
+                        "from_name": from_name
+                    }
+                    save_smtp_config(organizer_email, new_config)
+                    st.success("Configuration saved!")
+                    st.rerun()
+        
+        # Test button outside the form
+        st.markdown("---")
+        if st.button("Test Email", use_container_width=True):
+            # Get the saved config for testing
+            saved_config = load_smtp_config(organizer_email)
+            if not saved_config or not saved_config.get("smtp_password"):
+                st.error("Please save your SMTP configuration first.")
+            else:
                 from email_utils import send_test_email
-                success, message = send_test_email(organizer_email, test_config)
+                success, message = send_test_email(organizer_email, saved_config)
                 
                 if success:
-                    st.success(f" {message}")
+                    st.success(message)
                 else:
-                    st.error(f" {message}")
+                    st.error(message)
 
 
 def render_logout_button():
