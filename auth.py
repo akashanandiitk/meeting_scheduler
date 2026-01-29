@@ -68,11 +68,33 @@ def save_credentials(credentials: Dict):
 
 
 def load_smtp_config(organizer_email: str) -> Optional[Dict]:
-    """Load SMTP configuration for an organizer."""
+    """Load SMTP configuration for an organizer.
+    
+    First checks local credentials file, then falls back to Streamlit secrets.
+    """
+    # First try local credentials
     credentials = load_credentials()
     organizer = credentials.get("organizers", {}).get(organizer_email.lower())
-    if organizer:
+    if organizer and organizer.get("smtp_config"):
         return organizer.get("smtp_config")
+    
+    # Fall back to Streamlit secrets if available
+    try:
+        import streamlit as st
+        if hasattr(st, 'secrets'):
+            secrets = st.secrets
+            if all(key in secrets for key in ['SMTP_SERVER', 'SMTP_PORT', 'SMTP_USERNAME', 'SMTP_PASSWORD']):
+                return {
+                    'smtp_server': secrets.get('SMTP_SERVER'),
+                    'smtp_port': int(secrets.get('SMTP_PORT', 587)),
+                    'smtp_username': secrets.get('SMTP_USERNAME'),
+                    'smtp_password': secrets.get('SMTP_PASSWORD'),
+                    'from_email': secrets.get('FROM_EMAIL', secrets.get('SMTP_USERNAME')),
+                    'from_name': secrets.get('FROM_NAME', 'Meeting Scheduler')
+                }
+    except Exception:
+        pass
+    
     return None
 
 
@@ -366,6 +388,9 @@ def render_smtp_setup():
     Configure your SMTP settings to send email invitations. 
     Your credentials are stored locally and never shared.
     """)
+    
+    # Note about Streamlit Cloud
+    st.info("**Note:** On Streamlit Cloud, SMTP settings need to be re-entered after app restarts. For persistent configuration, use Streamlit Secrets.")
     
     organizer_email = get_current_organizer()
     current_config = load_smtp_config(organizer_email) or {}

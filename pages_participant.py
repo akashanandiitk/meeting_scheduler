@@ -221,54 +221,69 @@ def render_participant_page(token: str = None):
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
+    # Check if just submitted
+    submitted_key = f'response_submitted_{meeting_id}'
+    
     with col2:
-        if st.button("Submit Response", use_container_width=True, type="primary"):
-            # Save all responses using meeting-specific session key
-            session_key = f'slot_responses_{meeting_id}'
-            for slot in slots:
-                availability = st.session_state[session_key].get(slot['id'], 'unavailable')
-                save_response(
-                    meeting_id=meeting_id,
-                    contact_id=participant_id,
-                    slot_id=slot['id'],
-                    availability=availability
-                )
-            
-            # Save suggested slot if provided
-            if alt_date and alt_time:
-                alt_datetime = datetime.combine(alt_date, alt_time)
-                add_suggested_slot(
-                    meeting_id=meeting_id,
-                    contact_id=participant_id,
-                    suggested_datetime=alt_datetime.isoformat(),
-                    note=alt_note
-                )
-            
-            # Mark as responded
-            mark_participant_responded(meeting_id, participant_id)
-            
-            # Notify organizer
-            base_url = get_base_url()
-            send_response_notification(
-                organizer_email=organizer_email,
-                participant_name=participant_name,
-                meeting_title=meeting_title,
-                meeting_id=meeting_id,
-                base_url=base_url
-            )
-            
+        if st.session_state.get(submitted_key):
+            # Already submitted in this session - show success and update option
             st.success("Your response has been submitted successfully. Thank you!")
             
             # Show summary
+            session_key = f'slot_responses_{meeting_id}'
             st.markdown("### Your Response Summary:")
             for slot in slots:
                 slot_dt = datetime.fromisoformat(slot['slot_datetime'])
                 slot_display = slot_dt.strftime('%a %m/%d %I:%M%p')
-                avail = st.session_state[session_key].get(slot['id'], 'unavailable')
+                avail = st.session_state.get(session_key, {}).get(slot['id'], 'unavailable')
                 icon = {'available': '✅', 'maybe': '🟡', 'unavailable': '❌'}[avail]
                 st.write(f"{icon} {slot_display}")
             
             st.info("You can revisit this link anytime to update your response.")
+            
+            if st.button("Update Response", use_container_width=True):
+                del st.session_state[submitted_key]
+                st.rerun()
+        else:
+            # Show submit button
+            if st.button("Submit Response", use_container_width=True, type="primary"):
+                # Save all responses using meeting-specific session key
+                session_key = f'slot_responses_{meeting_id}'
+                for slot in slots:
+                    availability = st.session_state[session_key].get(slot['id'], 'unavailable')
+                    save_response(
+                        meeting_id=meeting_id,
+                        contact_id=participant_id,
+                        slot_id=slot['id'],
+                        availability=availability
+                    )
+                
+                # Save suggested slot if provided
+                if alt_date and alt_time:
+                    alt_datetime = datetime.combine(alt_date, alt_time)
+                    add_suggested_slot(
+                        meeting_id=meeting_id,
+                        contact_id=participant_id,
+                        suggested_datetime=alt_datetime.isoformat(),
+                        note=alt_note
+                    )
+                
+                # Mark as responded
+                mark_participant_responded(meeting_id, participant_id)
+                
+                # Notify organizer
+                base_url = get_base_url()
+                send_response_notification(
+                    organizer_email=organizer_email,
+                    participant_name=participant_name,
+                    meeting_title=meeting_title,
+                    meeting_id=meeting_id,
+                    base_url=base_url
+                )
+                
+                # Mark as submitted in session
+                st.session_state[submitted_key] = True
+                st.rerun()
 
 
 def render_participant_lookup():

@@ -503,15 +503,20 @@ def render_meeting_creation():
     if st.session_state.get('meeting_created_success'):
         msg = st.session_state.pop('meeting_created_success')
         st.success(msg['message'])
-        with st.expander(" Email Status", expanded=True):
+        with st.expander("Email Status", expanded=True):
             for name, success in msg['email_results']:
                 if success:
-                    st.write(f" {name}")
+                    st.write(f"✅ {name}")
                 else:
-                    st.write(f" {name} - Failed to send")
+                    st.write(f"❌ {name} - Failed to send")
+        # Clear the success message and show option to create another
+        if st.button("Create Another Meeting"):
+            del st.session_state['meeting_created_success']
+            st.rerun()
+        return  # Don't show the form again until user clicks "Create Another"
     
-    # Submit button (using a callback to handle submission)
-    if st.button(" Create & Send Invitations", use_container_width=True, type="primary"):
+    # Submit button
+    if st.button("Create & Send Invitations", use_container_width=True, type="primary"):
         if not title:
             st.error("Please enter a meeting title.")
         elif not selected_participants:
