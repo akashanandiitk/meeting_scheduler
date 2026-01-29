@@ -468,7 +468,7 @@ def render_meeting_creation():
     st.subheader("Propose Time Slots")
     
     # Number input for immediate updates
-    num_slots = st.number_input("Number of time slots", min_value=1, max_value=10, value=3, key="num_slots_input")
+    num_slots = st.number_input("Number of time slots", min_value=1, max_value=20, value=3, key="num_slots_input")
     
     slots = []
     cols = st.columns(2)
